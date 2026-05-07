@@ -123,13 +123,14 @@ function renderChart(tickerName) {
     };
 
     const layout = {
-        paper_bgcolor: '#16213e',
-        plot_bgcolor: '#16213e',
-        font: { color: '#eee' },
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        font: { color: '#cbd5e1', family: '"Outfit", sans-serif' },
         margin: { t: 20, r: 20, b: 40, l: 60 },
-        xaxis: { gridcolor: '#2a2a4a', rangeslider: { visible: false } },
-        yaxis: { gridcolor: '#2a2a4a', tickprefix: '€' },
-        hovermode: 'x unified'
+        xaxis: { gridcolor: 'rgba(255,255,255,0.05)', rangeslider: { visible: false } },
+        yaxis: { gridcolor: 'rgba(255,255,255,0.05)', tickprefix: '€' },
+        hovermode: 'x unified',
+        hoverlabel: { bgcolor: 'rgba(15, 23, 42, 0.9)', bordercolor: '#38bdf8', font: {family: '"Outfit", sans-serif'} }
     };
 
     Plotly.newPlot('chart', [trace1, trace2, trace3], layout);

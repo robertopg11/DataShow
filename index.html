@@ -27,6 +27,20 @@
             <button class="refresh-btn" onclick="applyChanges()">Cargar Datos</button>
         </div>
 
+        <div class="error" id="error"></div>
+        
+        <div class="chart-container">
+            <div id="chart">
+                <div class="loading" id="loading">Esperando datos...</div>
+            </div>
+        </div>
+        
+        <div class="legend" id="legend">
+            <div class="legend-item"><div class="legend-dot" style="background: #00d4ff;"></div> Precio Histórico</div>
+            <div class="legend-item"><div class="legend-dot" style="background: #00ff88;"></div> Mis Compras</div>
+            <div class="legend-item"><div class="legend-dot" style="background: #ff6b6b;"></div> Precio Medio</div>
+        </div>
+
         <div class="stats" id="stats">
             <div class="stat-box">
                 <h3>Inversión Total</h3>
@@ -79,20 +93,6 @@
                 <h3>Precio Actual</h3>
                 <div class="value" id="currentPrice">-</div>
             </div>
-        </div>
-        
-        <div class="error" id="error"></div>
-        
-        <div class="chart-container">
-            <div id="chart">
-                <div class="loading" id="loading">Esperando datos...</div>
-            </div>
-        </div>
-        
-        <div class="legend" id="legend">
-            <div class="legend-item"><div class="legend-dot" style="background: #00d4ff;"></div> Precio Histórico</div>
-            <div class="legend-item"><div class="legend-dot" style="background: #00ff88;"></div> Mis Compras</div>
-            <div class="legend-item"><div class="legend-dot" style="background: #ff6b6b;"></div> Precio Medio</div>
         </div>
     </div>
     
