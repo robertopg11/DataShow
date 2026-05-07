@@ -1,0 +1,273 @@
+// Valores por defecto si no se carga CSV
+let buyPoints = [
+    { date: '2022-06-13', price: 270.60, total: 270.60, comision: 3, numero: 1 },
+    { date: '2022-09-28', price: 286.15, total: 286.15, comision: 3, numero: 1 },
+    { date: '2022-11-04', price: 268.35, total: 268.35, comision: 3, numero: 1 },
+    { date: '2022-12-28', price: 248.80, total: 248.80, comision: 3, numero: 1 },
+    { date: '2023-07-06', price: 339.65, total: 339.65, comision: 3, numero: 1 },
+    { date: '2024-02-20', price: 398.00, total: 398.00, comision: 3, numero: 1 },
+    { date: '2024-07-18', price: 445.80, total: 445.80, comision: 3, numero: 1 },
+    { date: '2024-07-25', price: 429.55, total: 429.55, comision: 3, numero: 1 },
+    { date: '2024-08-05', price: 387.90, total: 387.90, comision: 3, numero: 1 },
+    { date: '2025-01-28', price: 498.65, total: 498.65, comision: 3, numero: 1 },
+    { date: '2025-02-25', price: 497.00, total: 497.00, comision: 3, numero: 1 },
+    { date: '2025-02-26', price: 495.50, total: 495.50, comision: 3, numero: 1 },
+    { date: '2025-02-28', price: 485.25, total: 485.25, comision: 3, numero: 1 },
+    { date: '2025-03-04', price: 470.85, total: 470.85, comision: 3, numero: 1 },
+    { date: '2025-03-07', price: 454.30, total: 454.30, comision: 3, numero: 1 },
+    { date: '2025-03-31', price: 430.50, total: 430.50, comision: 3, numero: 1 },
+    { date: '2025-04-03', price: 411.20, total: 411.20, comision: 3, numero: 1 },
+    { date: '2025-04-04', price: 399.70, total: 399.70, comision: 3, numero: 1 },
+    { date: '2026-01-20', price: 521.90, total: 521.90, comision: 3, numero: 1 },
+    { date: '2026-02-13', price: 509.00, total: 509.00, comision: 3, numero: 1 },
+    { date: '2026-03-27', price: 497.35, total: 497.35, comision: 3, numero: 1 }
+];
+
+let historicalData = [];
+let currentPrice = 0;
+let productName = "INVESCO EQQQ NASDAQ-100 UCITS ETF";
+
+function parseCSVRow(str) {
+    return str.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(s => s.replace(/^"|"$/g, '').trim());
+}
+
+function processCSV(csvText, isin) {
+    const lines = csvText.split('\n');
+    const newBuyPoints = [];
+    let foundName = null;
+    for(let i=1; i<lines.length; i++) {
+        if(!lines[i].trim()) continue;
+        const cols = parseCSVRow(lines[i]);
+        if(cols.length < 16) continue;
+        const rowIsin = cols[3];
+        if(rowIsin === isin) {
+            if(!foundName) foundName = cols[2];
+            const dateParts = cols[0].split('-');
+            if(dateParts.length !== 3) continue;
+            const date = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
+            
+            const price = parseFloat(cols[7].replace(',', '.'));
+            const total = Math.abs(parseFloat(cols[15].replace(',', '.')));
+            let comision = 0;
+            if(cols[14]) {
+                comision = Math.abs(parseFloat(cols[14].replace(',', '.')));
+            }
+            const numero = parseFloat(cols[6].replace(',', '.'));
+            
+            if(numero > 0) {
+                newBuyPoints.push({
+                    date: date,
+                    price: price,
+                    total: total - comision,
+                    comision: comision,
+                    numero: numero
+                });
+            }
+        }
+    }
+    newBuyPoints.sort((a,b) => new Date(a.date) - new Date(b.date));
+    return { points: newBuyPoints, name: foundName };
+}
+
+async function fetchYahooData(ticker) {
+    if(ticker === 'EQQQ.MI' && typeof historicalDataStr !== 'undefined') {
+        return historicalDataStr;
+    }
+    
+    const url = `https://corsproxy.io/?https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?range=5y&interval=1d`;
+    const res = await fetch(url);
+    if(!res.ok) throw new Error('Error al descargar Yahoo Finance. Asegúrate de iniciar el servidor local (python -m http.server)');
+    const data = await res.json();
+    const result = data.chart.result[0];
+    const timestamps = result.timestamp;
+    const closes = result.indicators.quote[0].close;
+    
+    const hist = [];
+    for(let i=0; i<timestamps.length; i++) {
+        if(closes[i] !== null) {
+            const d = new Date(timestamps[i] * 1000);
+            const dt = d.toISOString().split('T')[0];
+            hist.push({ date: dt, price: closes[i] });
+        }
+    }
+    return hist;
+}
+
+function calculateTaxes(netProfit) {
+    if (netProfit <= 0) return 0;
+    
+    let remaining = netProfit;
+    let taxes = 0;
+    
+    // Tramos IRPF ahorro España 2023+
+    // 1. Hasta 6.000 €: 19%
+    // 2. De 6.000 € a 50.000 €: 21%
+    // 3. De 50.000 € a 200.000 €: 23%
+    // 4. De 200.000 € a 300.000 €: 27%
+    // 5. Más de 300.000 €: 28%
+    
+    if (remaining > 0) {
+        let taxable = Math.min(remaining, 6000);
+        taxes += taxable * 0.19;
+        remaining -= taxable;
+    }
+    
+    if (remaining > 0) {
+        let taxable = Math.min(remaining, 44000); // 50000 - 6000
+        taxes += taxable * 0.21;
+        remaining -= taxable;
+    }
+    
+    if (remaining > 0) {
+        let taxable = Math.min(remaining, 150000); // 200000 - 50000
+        taxes += taxable * 0.23;
+        remaining -= taxable;
+    }
+    
+    if (remaining > 0) {
+        let taxable = Math.min(remaining, 100000); // 300000 - 200000
+        taxes += taxable * 0.27;
+        remaining -= taxable;
+    }
+    
+    if (remaining > 0) {
+        taxes += remaining * 0.28;
+    }
+    
+    return taxes;
+}
+
+function updateStats() {
+    const totalInvestment = buyPoints.reduce((sum, p) => sum + p.total + (p.comision || 0), 0);
+    const shares = buyPoints.reduce((sum, p) => sum + (p.numero || 1), 0);
+    const totalComisions = buyPoints.reduce((sum, p) => sum + (p.comision || 0), 0);
+    
+    // El precio medio es lo que costaron las acciones más sus comisiones dividido por el número de acciones
+    const avgPrice = shares > 0 ? totalInvestment / shares : 0;
+    
+    const currentValue = shares * currentPrice;
+    
+    // La ganancia bruta asume venta total sin comisiones de venta (solo comisiones de compra están sumadas a inversión)
+    const grossGain = currentValue - totalInvestment; 
+    const grossGainPercent = totalInvestment > 0 ? (grossGain / totalInvestment * 100).toFixed(2) : 0;
+
+    const estimatedTaxes = calculateTaxes(grossGain);
+    const netGain = grossGain - estimatedTaxes;
+
+    document.getElementById('totalInvestment').textContent = totalInvestment.toFixed(2) + ' €';
+    document.getElementById('currentValue').textContent = currentValue.toFixed(2) + ' €';
+    
+    const gainLossEl = document.getElementById('gainLoss');
+    gainLossEl.textContent = `${grossGain.toFixed(2)} € (${grossGainPercent}%)`;
+    gainLossEl.className = 'value ' + (grossGain >= 0 ? 'positive' : 'negative');
+    
+    document.getElementById('totalCommissions').textContent = totalComisions.toFixed(2) + ' €';
+    document.getElementById('estimatedTaxes').textContent = estimatedTaxes.toFixed(2) + ' €';
+    
+    const netGainEl = document.getElementById('netGain');
+    netGainEl.textContent = `${netGain.toFixed(2)} €`;
+    netGainEl.className = 'value ' + (netGain >= 0 ? 'positive' : 'negative');
+
+    document.getElementById('shares').textContent = shares.toFixed(4).replace(/\.?0+$/, ''); // limpiar decimales
+    document.getElementById('avgPrice').textContent = avgPrice.toFixed(2) + ' €';
+    document.getElementById('currentPrice').textContent = currentPrice.toFixed(2) + ' €';
+    document.getElementById('currentPrice').className = 'value ' + (currentPrice > avgPrice ? 'positive' : 'negative');
+}
+
+function renderChart(tickerName) {
+    const dates = historicalData.map(d => d.date);
+    const prices = historicalData.map(d => d.price);
+
+    const totalInv = buyPoints.reduce((sum, p) => sum + p.total + (p.comision || 0), 0);
+    const shares = buyPoints.reduce((sum, p) => sum + (p.numero || 1), 0);
+    const avgPrice = shares > 0 ? totalInv / shares : 0;
+    const avgLine = dates.map(() => avgPrice);
+
+    const trace1 = {
+        x: dates,
+        y: prices,
+        type: 'scatter',
+        mode: 'lines',
+        name: 'Precio ' + tickerName,
+        line: { color: '#00d4ff', width: 2 },
+        hovertemplate: '<b>Fecha:</b> %{x}<br><b>Precio:</b> €%{y:.2f}<extra></extra>'
+    };
+
+    const trace2 = {
+        x: buyPoints.map(p => p.date),
+        y: buyPoints.map(p => p.price),
+        type: 'scatter',
+        mode: 'markers',
+        name: 'Mis Compras',
+        text: buyPoints.map(p => `Cant: ${p.numero}<br>Comis: €${(p.comision||0).toFixed(2)}`),
+        marker: { color: '#00ff88', size: 10, line: { color: '#fff', width: 1 } },
+        hovertemplate: '<b>Fecha:</b> %{x}<br><b>Precio:</b> €%{y:.2f}<br>%{text}<extra></extra>'
+    };
+
+    const trace3 = {
+        x: dates,
+        y: avgLine,
+        type: 'scatter',
+        mode: 'lines',
+        name: 'Precio Medio',
+        line: { color: '#ff6b6b', width: 1.5, dash: 'dash' }
+    };
+
+    const layout = {
+        paper_bgcolor: '#16213e',
+        plot_bgcolor: '#16213e',
+        font: { color: '#eee' },
+        margin: { t: 20, r: 20, b: 40, l: 60 },
+        xaxis: { gridcolor: '#2a2a4a', rangeslider: { visible: false } },
+        yaxis: { gridcolor: '#2a2a4a', tickprefix: '€' },
+        hovermode: 'x unified'
+    };
+
+    Plotly.newPlot('chart', [trace1, trace2, trace3], layout);
+}
+
+async function applyChanges() {
+    const csvFile = document.getElementById('csvFile').files[0];
+    const isin = document.getElementById('isinInput').value.trim();
+    const ticker = document.getElementById('tickerInput').value.trim();
+    
+    const errorEl = document.getElementById('error');
+    const loadingEl = document.getElementById('loading');
+    
+    errorEl.style.display = 'none';
+    loadingEl.style.display = 'block';
+    Plotly.purge('chart'); // Limpiar gráfico
+    
+    try {
+        if (csvFile && isin) {
+            const text = await csvFile.text();
+            const extracted = processCSV(text, isin);
+            if(extracted.points.length === 0) {
+                throw new Error(`No se encontraron compras para el ISIN ${isin} en el CSV.`);
+            }
+            buyPoints = extracted.points;
+            if(extracted.name) productName = extracted.name;
+        }
+        
+        const rawHist = await fetchYahooData(ticker);
+        if(rawHist.length === 0) throw new Error('No se recibieron datos históricos válidos.');
+        
+        historicalData = rawHist.slice(-1500);
+        currentPrice = historicalData[historicalData.length - 1].price;
+        
+        document.getElementById('pageTitle').textContent = `📈 ${productName} (${ticker})`;
+        
+        updateStats();
+        renderChart(ticker);
+        loadingEl.style.display = 'none';
+        document.getElementById('legend').style.display = 'flex';
+    } catch (err) {
+        loadingEl.style.display = 'none';
+        errorEl.style.display = 'block';
+        errorEl.textContent = err.message;
+        console.error(err);
+    }
+}
+
+// Cargar por defecto al iniciar
+setTimeout(() => applyChanges(), 100);
