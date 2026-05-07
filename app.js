@@ -1,4 +1,4 @@
-// Valores por defecto si no se carga CSV
+// Estado Global
 let buyPoints = [
     { date: '2022-06-13', price: 270.60, total: 270.60, comision: 3, numero: 1 },
     { date: '2022-09-28', price: 286.15, total: 286.15, comision: 3, numero: 1 },
@@ -26,129 +26,20 @@ let buyPoints = [
 let historicalData = [];
 let currentPrice = 0;
 let productName = "INVESCO EQQQ NASDAQ-100 UCITS ETF";
-
-function parseCSVRow(str) {
-    return str.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(s => s.replace(/^"|"$/g, '').trim());
-}
-
-function processCSV(csvText, isin) {
-    const lines = csvText.split('\n');
-    const newBuyPoints = [];
-    let foundName = null;
-    for(let i=1; i<lines.length; i++) {
-        if(!lines[i].trim()) continue;
-        const cols = parseCSVRow(lines[i]);
-        if(cols.length < 16) continue;
-        const rowIsin = cols[3];
-        if(rowIsin === isin) {
-            if(!foundName) foundName = cols[2];
-            const dateParts = cols[0].split('-');
-            if(dateParts.length !== 3) continue;
-            const date = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
-            
-            const price = parseFloat(cols[7].replace(',', '.'));
-            const total = Math.abs(parseFloat(cols[15].replace(',', '.')));
-            let comision = 0;
-            if(cols[14]) {
-                comision = Math.abs(parseFloat(cols[14].replace(',', '.')));
-            }
-            const numero = parseFloat(cols[6].replace(',', '.'));
-            
-            if(numero > 0) {
-                newBuyPoints.push({
-                    date: date,
-                    price: price,
-                    total: total - comision,
-                    comision: comision,
-                    numero: numero
-                });
-            }
-        }
-    }
-    newBuyPoints.sort((a,b) => new Date(a.date) - new Date(b.date));
-    return { points: newBuyPoints, name: foundName };
-}
-
-async function fetchYahooData(ticker) {
-    if(ticker === 'EQQQ.MI' && typeof historicalDataStr !== 'undefined') {
-        return historicalDataStr;
-    }
-    
-    const url = `https://corsproxy.io/?https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?range=5y&interval=1d`;
-    const res = await fetch(url);
-    if(!res.ok) throw new Error('Error al descargar Yahoo Finance. Asegúrate de iniciar el servidor local (python -m http.server)');
-    const data = await res.json();
-    const result = data.chart.result[0];
-    const timestamps = result.timestamp;
-    const closes = result.indicators.quote[0].close;
-    
-    const hist = [];
-    for(let i=0; i<timestamps.length; i++) {
-        if(closes[i] !== null) {
-            const d = new Date(timestamps[i] * 1000);
-            const dt = d.toISOString().split('T')[0];
-            hist.push({ date: dt, price: closes[i] });
-        }
-    }
-    return hist;
-}
-
-function calculateTaxes(netProfit) {
-    if (netProfit <= 0) return 0;
-    
-    let remaining = netProfit;
-    let taxes = 0;
-    
-    // Tramos IRPF ahorro España 2023+
-    // 1. Hasta 6.000 €: 19%
-    // 2. De 6.000 € a 50.000 €: 21%
-    // 3. De 50.000 € a 200.000 €: 23%
-    // 4. De 200.000 € a 300.000 €: 27%
-    // 5. Más de 300.000 €: 28%
-    
-    if (remaining > 0) {
-        let taxable = Math.min(remaining, 6000);
-        taxes += taxable * 0.19;
-        remaining -= taxable;
-    }
-    
-    if (remaining > 0) {
-        let taxable = Math.min(remaining, 44000); // 50000 - 6000
-        taxes += taxable * 0.21;
-        remaining -= taxable;
-    }
-    
-    if (remaining > 0) {
-        let taxable = Math.min(remaining, 150000); // 200000 - 50000
-        taxes += taxable * 0.23;
-        remaining -= taxable;
-    }
-    
-    if (remaining > 0) {
-        let taxable = Math.min(remaining, 100000); // 300000 - 200000
-        taxes += taxable * 0.27;
-        remaining -= taxable;
-    }
-    
-    if (remaining > 0) {
-        taxes += remaining * 0.28;
-    }
-    
-    return taxes;
-}
+let earnedDividends = 0;
 
 function updateStats() {
     const totalInvestment = buyPoints.reduce((sum, p) => sum + p.total + (p.comision || 0), 0);
     const shares = buyPoints.reduce((sum, p) => sum + (p.numero || 1), 0);
     const totalComisions = buyPoints.reduce((sum, p) => sum + (p.comision || 0), 0);
     
-    // El precio medio es lo que costaron las acciones más sus comisiones dividido por el número de acciones
     const avgPrice = shares > 0 ? totalInvestment / shares : 0;
-    
     const currentValue = shares * currentPrice;
     
-    // La ganancia bruta asume venta total sin comisiones de venta (solo comisiones de compra están sumadas a inversión)
-    const grossGain = currentValue - totalInvestment; 
+    // Ganancia bruta = (Valor Actual - Total Invertido) + Dividendos
+    const grossGainWithoutDividends = currentValue - totalInvestment; 
+    const grossGain = grossGainWithoutDividends + earnedDividends;
+    
     const grossGainPercent = totalInvestment > 0 ? (grossGain / totalInvestment * 100).toFixed(2) : 0;
 
     const estimatedTaxes = calculateTaxes(grossGain);
@@ -164,11 +55,14 @@ function updateStats() {
     document.getElementById('totalCommissions').textContent = totalComisions.toFixed(2) + ' €';
     document.getElementById('estimatedTaxes').textContent = estimatedTaxes.toFixed(2) + ' €';
     
+    const divEl = document.getElementById('dividendsEarned');
+    divEl.textContent = earnedDividends.toFixed(2) + ' €';
+    
     const netGainEl = document.getElementById('netGain');
     netGainEl.textContent = `${netGain.toFixed(2)} €`;
     netGainEl.className = 'value ' + (netGain >= 0 ? 'positive' : 'negative');
 
-    document.getElementById('shares').textContent = shares.toFixed(4).replace(/\.?0+$/, ''); // limpiar decimales
+    document.getElementById('shares').textContent = shares.toFixed(4).replace(/\.?0+$/, ''); 
     document.getElementById('avgPrice').textContent = avgPrice.toFixed(2) + ' €';
     document.getElementById('currentPrice').textContent = currentPrice.toFixed(2) + ' €';
     document.getElementById('currentPrice').className = 'value ' + (currentPrice > avgPrice ? 'positive' : 'negative');
@@ -236,7 +130,7 @@ async function applyChanges() {
     
     errorEl.style.display = 'none';
     loadingEl.style.display = 'block';
-    Plotly.purge('chart'); // Limpiar gráfico
+    Plotly.purge('chart');
     
     try {
         if (csvFile && isin) {
@@ -247,6 +141,9 @@ async function applyChanges() {
             }
             buyPoints = extracted.points;
             if(extracted.name) productName = extracted.name;
+            earnedDividends = extracted.dividends;
+        } else {
+            earnedDividends = 0; // Para el EQQQ por defecto sin CSV
         }
         
         const rawHist = await fetchYahooData(ticker);
