@@ -29,9 +29,10 @@ let productName = "INVESCO EQQQ NASDAQ-100 UCITS ETF";
 let earnedDividends = 0;
 
 function updateStats() {
-    const totalInvestment = buyPoints.reduce((sum, p) => sum + p.total + (p.comision || 0), 0);
+    const totalInvestment = buyPoints.reduce((sum, p) => sum + p.total + (p.comision || 0) + (p.autoFx || 0), 0);
     const shares = buyPoints.reduce((sum, p) => sum + (p.numero || 1), 0);
     const totalComisions = buyPoints.reduce((sum, p) => sum + (p.comision || 0), 0);
+    const totalAutoFx = buyPoints.reduce((sum, p) => sum + (p.autoFx || 0), 0);
     
     const avgPrice = shares > 0 ? totalInvestment / shares : 0;
     const currentValue = shares * currentPrice;
@@ -45,14 +46,28 @@ function updateStats() {
     const estimatedTaxes = calculateTaxes(grossGain);
     const netGain = grossGain - estimatedTaxes;
 
+    // Calcular TIR (XIRR)
+    const cashFlows = [];
+    buyPoints.forEach(p => {
+        cashFlows.push({ date: new Date(p.date), amount: -(p.total + (p.comision || 0) + (p.autoFx || 0)) });
+    });
+    cashFlows.push({ date: new Date(), amount: currentValue + earnedDividends });
+    const xirr = calculateXIRR(cashFlows);
+    const xirrPercent = (xirr * 100).toFixed(2);
+
     document.getElementById('totalInvestment').textContent = totalInvestment.toFixed(2) + ' €';
     document.getElementById('currentValue').textContent = currentValue.toFixed(2) + ' €';
     
     const gainLossEl = document.getElementById('gainLoss');
     gainLossEl.textContent = `${grossGain.toFixed(2)} € (${grossGainPercent}%)`;
     gainLossEl.className = 'value ' + (grossGain >= 0 ? 'positive' : 'negative');
+
+    const xirrEl = document.getElementById('xirrValue');
+    xirrEl.textContent = `${xirrPercent}%`;
+    xirrEl.className = 'value ' + (xirr >= 0 ? 'positive' : 'negative');
     
     document.getElementById('totalCommissions').textContent = totalComisions.toFixed(2) + ' €';
+    document.getElementById('autoFxCommissions').textContent = totalAutoFx.toFixed(2) + ' €';
     document.getElementById('estimatedTaxes').textContent = estimatedTaxes.toFixed(2) + ' €';
     
     const divEl = document.getElementById('dividendsEarned');
@@ -133,6 +148,9 @@ async function applyChanges() {
     Plotly.purge('chart');
     
     try {
+        localStorage.setItem('portfolio_isin', isin);
+        localStorage.setItem('portfolio_ticker', ticker);
+
         if (csvFile && isin) {
             const text = await csvFile.text();
             const extracted = processCSV(text, isin);
@@ -142,8 +160,22 @@ async function applyChanges() {
             buyPoints = extracted.points;
             if(extracted.name) productName = extracted.name;
             earnedDividends = extracted.dividends;
+            
+            localStorage.setItem('portfolio_buyPoints', JSON.stringify(buyPoints));
+            localStorage.setItem('portfolio_productName', productName);
+            localStorage.setItem('portfolio_earnedDividends', earnedDividends);
+            localStorage.setItem('portfolio_hasCustomData', 'true');
         } else {
-            earnedDividends = 0; // Para el EQQQ por defecto sin CSV
+            if (localStorage.getItem('portfolio_hasCustomData') === 'true') {
+                const savedPoints = localStorage.getItem('portfolio_buyPoints');
+                if (savedPoints) {
+                    buyPoints = JSON.parse(savedPoints);
+                    productName = localStorage.getItem('portfolio_productName') || productName;
+                    earnedDividends = parseFloat(localStorage.getItem('portfolio_earnedDividends')) || 0;
+                }
+            } else {
+                earnedDividends = 0; // Para el EQQQ por defecto sin CSV
+            }
         }
         
         const rawHist = await fetchYahooData(ticker);
@@ -166,5 +198,12 @@ async function applyChanges() {
     }
 }
 
-// Cargar por defecto al iniciar
-setTimeout(() => applyChanges(), 100);
+// Cargar por defecto al iniciar o desde LocalStorage
+document.addEventListener('DOMContentLoaded', () => {
+    const savedIsin = localStorage.getItem('portfolio_isin');
+    const savedTicker = localStorage.getItem('portfolio_ticker');
+    if (savedIsin) document.getElementById('isinInput').value = savedIsin;
+    if (savedTicker) document.getElementById('tickerInput').value = savedTicker;
+    
+    setTimeout(() => applyChanges(), 100);
+});

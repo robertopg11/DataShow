@@ -42,12 +42,18 @@ function processCSV(csvText, isin) {
                 comision = Math.abs(parseFloat(cols[14].replace(',', '.')));
             }
             
+            let autoFx = 0;
+            if(cols[13]) {
+                autoFx = Math.abs(parseFloat(cols[13].replace(',', '.')));
+            }
+            
             if(numero > 0 && total < 0) {
                 newBuyPoints.push({
                     date: date,
                     price: price,
-                    total: Math.abs(total) - comision,
+                    total: Math.abs(total) - comision - autoFx,
                     comision: comision,
+                    autoFx: autoFx,
                     numero: numero
                 });
             }
