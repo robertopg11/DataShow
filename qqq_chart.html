@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EQQQ - Mi Cartera</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <script src="qqq_data.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #1a1a2e; color: #eee; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 { text-align: center; margin-bottom: 10px; color: #00d4ff; }
+        .stats { display: flex; gap: 20px; margin-bottom: 20px; flex-wrap: wrap; }
+        .stat-box { background: #16213e; padding: 15px 20px; border-radius: 10px; flex: 1; min-width: 200px; }
+        .stat-box h3 { font-size: 12px; color: #888; margin-bottom: 5px; text-transform: uppercase; }
+        .stat-box .value { font-size: 24px; font-weight: bold; }
+        .stat-box .value.positive { color: #00ff88; }
+        .stat-box .value.negative { color: #ff4757; }
+        .chart-container { background: #16213e; border-radius: 15px; padding: 20px; margin-bottom: 20px; }
+        #chart { width: 100%; height: 500px; }
+        .legend { display: flex; gap: 20px; justify-content: center; margin-top: 10px; }
+        .legend-item { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+        .legend-dot { width: 12px; height: 12px; border-radius: 50%; }
+        .loading { text-align: center; padding: 50px; font-size: 18px; color: #888; }
+        .error { background: #ff4757; color: white; padding: 20px; border-radius: 10px; text-align: center; margin: 20px 0; display: none; }
+        .refresh-btn { background: #00d4ff; color: #1a1a2e; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; margin: 10px auto; display: block; }
+        .refresh-btn:hover { background: #00b8e6; }
+        .tooltip { position: absolute; background: #0f0f23; border: 1px solid #00d4ff; padding: 10px; border-radius: 5px; font-size: 12px; pointer-events: none; z-index: 1000; display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📈 INVESCO EQQQ NASDAQ-100 UCITS ETF</h1>
+        <div class="stats" id="stats">
+            <div class="stat-box">
+                <h3>Inversión Total</h3>
+                <div class="value" id="totalInvestment">-</div>
+            </div>
+            <div class="stat-box">
+                <h3>Valor Actual</h3>
+                <div class="value" id="currentValue">-</div>
+            </div>
+            <div class="stat-box">
+                <h3>Ganancia/Pérdida</h3>
+                <div class="value" id="gainLoss">-</div>
+            </div>
+            <div class="stat-box">
+                <h3>Acciones</h3>
+                <div class="value" id="shares">-</div>
+            </div>
+            <div class="stat-box">
+                <h3>Precio Medio</h3>
+                <div class="value" id="avgPrice">-</div>
+            </div>
+            <div class="stat-box">
+                <h3>Precio Actual</h3>
+                <div class="value" id="currentPrice">-</div>
+            </div>
+        </div>
+        <button class="refresh-btn" onclick="alert('Para actualizar los datos desde Yahoo Finance, ejecuta el script update_qqq_data.py y luego recarga esta página (F5).')">🔄 Actualizar Datos</button>
+        <div class="error" id="error"></div>
+        <div class="chart-container">
+            <div id="chart">
+                <div class="loading" id="loading">Cargando datos...</div>
+            </div>
+        </div>
+        <div class="legend">
+            <div class="legend-item"><div class="legend-dot" style="background: #00d4ff;"></div> Precio Histórico</div>
+            <div class="legend-item"><div class="legend-dot" style="background: #00ff88;"></div> Mis Compras</div>
+            <div class="legend-item"><div class="legend-dot" style="background: #ff6b6b;"></div> Precio Medio</div>
+        </div>
+    </div>
+    <div class="tooltip" id="tooltip"></div>
+
+    <script>
+const buyPoints = [
+    { date: '2022-06-13', price: 270.60, total: 270.60 },
+    { date: '2022-09-28', price: 286.15, total: 286.15 },
+    { date: '2022-11-04', price: 268.35, total: 268.35 },
+    { date: '2022-12-28', price: 248.80, total: 248.80 },
+    { date: '2023-07-06', price: 339.65, total: 339.65 },
+    { date: '2024-02-20', price: 398.00, total: 398.00 },
+    { date: '2024-07-18', price: 445.80, total: 445.80 },
+    { date: '2024-07-25', price: 429.55, total: 429.55 },
+    { date: '2024-08-05', price: 387.90, total: 387.90 },
+    { date: '2025-01-28', price: 498.65, total: 498.65 },
+    { date: '2025-02-25', price: 497.00, total: 497.00 },
+    { date: '2025-02-26', price: 495.50, total: 495.50 },
+    { date: '2025-02-28', price: 485.25, total: 485.25 },
+    { date: '2025-03-04', price: 470.85, total: 470.85 },
+    { date: '2025-03-07', price: 454.30, total: 454.30 },
+    { date: '2025-03-31', price: 430.50, total: 430.50 },
+    { date: '2025-04-03', price: 411.20, total: 411.20 },
+    { date: '2025-04-04', price: 399.70, total: 399.70 },
+    { date: '2026-01-20', price: 521.90, total: 521.90 },
+    { date: '2026-02-13', price: 509.00, total: 509.00 },
+    { date: '2026-03-27', price: 497.35, total: 497.35 }
+];
+
+let historicalData = [];
+let currentPrice = 0;
+
+async function loadData() {
+    const loadingEl = document.getElementById('loading');
+    const errorEl = document.getElementById('error');
+    
+    loadingEl.style.display = 'block';
+    errorEl.style.display = 'none';
+    
+    try {
+        if (typeof historicalDataStr === 'undefined') {
+            throw new Error('No se encuentra qqq_data.js. Por favor, ejecuta update_qqq_data.py primero.');
+        }
+        
+        const data = historicalDataStr;
+        
+        if (data.length === 0) throw new Error('No se recibieron datos válidos en qqq_data.js');
+        
+        historicalData = data.slice(-1500);
+        currentPrice = historicalData[historicalData.length - 1].price;
+        
+        updateStats();
+        renderChart();
+        loadingEl.style.display = 'none';
+    } catch (error) {
+        loadingEl.style.display = 'none';
+        errorEl.style.display = 'block';
+        errorEl.textContent = error.message;
+        console.error(error);
+    }
+}
+
+function updateStats() {
+    const comision = 3; // Comisión por operación que definiste
+    const totalInvestment = buyPoints.reduce((sum, p) => sum + p.total + comision, 0);
+    const shares = buyPoints.length;
+    const avgPrice = (totalInvestment - (shares * comision)) / shares;
+    const currentValue = shares * currentPrice;
+    const gainLoss = currentValue - totalInvestment;
+    const gainLossPercent = (gainLoss / totalInvestment * 100).toFixed(2);
+
+    document.getElementById('totalInvestment').textContent = totalInvestment.toFixed(2) + ' €';
+    document.getElementById('currentValue').textContent = currentValue.toFixed(2) + ' €';
+    
+    const gainLossEl = document.getElementById('gainLoss');
+    gainLossEl.textContent = `${gainLoss.toFixed(2)} € (${gainLossPercent}%)`;
+    gainLossEl.className = 'value ' + (gainLoss >= 0 ? 'positive' : 'negative');
+    
+    document.getElementById('shares').textContent = shares;
+    document.getElementById('avgPrice').textContent = avgPrice.toFixed(2) + ' €';
+    document.getElementById('currentPrice').textContent = currentPrice.toFixed(2) + ' €';
+    document.getElementById('currentPrice').className = 'value ' + (currentPrice > avgPrice ? 'positive' : 'negative');
+}
+
+function renderChart() {
+    const dates = historicalData.map(d => d.date);
+    const prices = historicalData.map(d => d.price);
+
+    // Calculamos el precio medio real con comisiones para la línea
+    const totalInv = buyPoints.reduce((sum, p) => sum + p.total + 3, 0);
+    const avgPrice = totalInv / buyPoints.length;
+    const avgLine = dates.map(() => avgPrice);
+
+    const trace1 = {
+        x: dates,
+        y: prices,
+        type: 'scatter',
+        mode: 'lines',
+        name: 'Precio EQQQ',
+        line: { color: '#00d4ff', width: 2 },
+        hovertemplate: '<b>Fecha:</b> %{x}<br><b>Precio:</b> €%{y:.2f}<extra></extra>'
+    };
+
+    const trace2 = {
+        x: buyPoints.map(p => p.date),
+        y: buyPoints.map(p => p.price),
+        type: 'scatter',
+        mode: 'markers',
+        name: 'Mis Compras',
+        marker: { color: '#00ff88', size: 10, line: { color: '#fff', width: 1 } }
+    };
+
+    const trace3 = {
+        x: dates,
+        y: avgLine,
+        type: 'scatter',
+        mode: 'lines',
+        name: 'Precio Medio',
+        line: { color: '#ff6b6b', width: 1.5, dash: 'dash' }
+    };
+
+    const layout = {
+        paper_bgcolor: '#16213e',
+        plot_bgcolor: '#16213e',
+        font: { color: '#eee' },
+        margin: { t: 20, r: 20, b: 40, l: 60 },
+        xaxis: { gridcolor: '#2a2a4a', rangeslider: { visible: false } },
+        yaxis: { gridcolor: '#2a2a4a', tickprefix: '€' },
+        hovermode: 'x unified'
+    };
+
+    Plotly.newPlot('chart', [trace1, trace2, trace3], layout);
+}
+
+// Iniciar carga
+loadData();
+    </script>
+</body>
+</html>
