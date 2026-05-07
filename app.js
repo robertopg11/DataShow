@@ -1,12 +1,6 @@
 // Estado Global
 let buyPoints = [
-    { date: '2024-07-25', price: 429.55, total: 429.55, comision: 3, numero: 1 },
-    { date: '2025-01-28', price: 498.65, total: 498.65, comision: 3, numero: 1 },
-    { date: '2025-02-25', price: 497.00, total: 497.00, comision: 3, numero: 1 },
-    { date: '2025-02-26', price: 495.50, total: 495.50, comision: 3, numero: 1 },
-    { date: '2026-01-20', price: 521.90, total: 521.90, comision: 3, numero: 1 },
-    { date: '2026-02-13', price: 509.00, total: 509.00, comision: 3, numero: 1 },
-    { date: '2026-03-27', price: 497.35, total: 497.35, comision: 3, numero: 1 }
+    { date: '2024-07-25', price: 429.55, total: 429.55, comision: 3, numero: 1 }
 ];
 
 let historicalData = [];
