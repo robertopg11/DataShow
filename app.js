@@ -133,7 +133,7 @@ function renderChart(tickerName) {
         hoverlabel: { bgcolor: 'rgba(15, 23, 42, 0.9)', bordercolor: '#38bdf8', font: {family: '"Outfit", sans-serif'} }
     };
 
-    Plotly.newPlot('chart', [trace1, trace2, trace3], layout);
+    Plotly.newPlot('chart', [trace1, trace2, trace3], layout, { responsive: true, displayModeBar: false });
 }
 
 async function applyChanges() {

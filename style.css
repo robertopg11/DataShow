@@ -170,3 +170,31 @@ h1 {
     opacity: 1; 
     transform: translateX(-50%) translateY(0);
 }
+
+/* --- Media Queries (Adaptabilidad Móvil) --- */
+@media (max-width: 768px) {
+    body { padding: 15px 10px; }
+    .container { padding: 20px 15px; border-radius: 16px; }
+    h1 { font-size: 1.8rem; margin-bottom: 25px; }
+    
+    .controls { flex-direction: column; align-items: stretch; gap: 15px; padding: 15px; }
+    .control-group { min-width: 100%; }
+    .refresh-btn { margin-top: 5px; width: 100%; height: 50px;}
+    
+    .stats { grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 25px; }
+    .stat-box { padding: 15px; }
+    .stat-box h3 { font-size: 10px; }
+    .stat-box .value { font-size: 18px; }
+    
+    .chart-container { padding: 10px; }
+    #chart { height: 350px; }
+    
+    .legend { flex-wrap: wrap; gap: 10px; justify-content: center; }
+    .legend-item { font-size: 12px; }
+    
+    .tooltip-text { width: 200px; font-size: 12px; }
+}
+
+@media (max-width: 400px) {
+    .stats { grid-template-columns: 1fr; }
+}
