@@ -1,26 +1,6 @@
 // Estado Global
 let buyPoints = [
-    { date: '2022-06-13', price: 270.60, total: 270.60, comision: 3, numero: 1 },
-    { date: '2022-09-28', price: 286.15, total: 286.15, comision: 3, numero: 1 },
-    { date: '2022-11-04', price: 268.35, total: 268.35, comision: 3, numero: 1 },
-    { date: '2022-12-28', price: 248.80, total: 248.80, comision: 3, numero: 1 },
-    { date: '2023-07-06', price: 339.65, total: 339.65, comision: 3, numero: 1 },
-    { date: '2024-02-20', price: 398.00, total: 398.00, comision: 3, numero: 1 },
-    { date: '2024-07-18', price: 445.80, total: 445.80, comision: 3, numero: 1 },
-    { date: '2024-07-25', price: 429.55, total: 429.55, comision: 3, numero: 1 },
-    { date: '2024-08-05', price: 387.90, total: 387.90, comision: 3, numero: 1 },
-    { date: '2025-01-28', price: 498.65, total: 498.65, comision: 3, numero: 1 },
-    { date: '2025-02-25', price: 497.00, total: 497.00, comision: 3, numero: 1 },
-    { date: '2025-02-26', price: 495.50, total: 495.50, comision: 3, numero: 1 },
-    { date: '2025-02-28', price: 485.25, total: 485.25, comision: 3, numero: 1 },
-    { date: '2025-03-04', price: 470.85, total: 470.85, comision: 3, numero: 1 },
-    { date: '2025-03-07', price: 454.30, total: 454.30, comision: 3, numero: 1 },
-    { date: '2025-03-31', price: 430.50, total: 430.50, comision: 3, numero: 1 },
-    { date: '2025-04-03', price: 411.20, total: 411.20, comision: 3, numero: 1 },
-    { date: '2025-04-04', price: 399.70, total: 399.70, comision: 3, numero: 1 },
-    { date: '2026-01-20', price: 521.90, total: 521.90, comision: 3, numero: 1 },
-    { date: '2026-02-13', price: 509.00, total: 509.00, comision: 3, numero: 1 },
-    { date: '2026-03-27', price: 497.35, total: 497.35, comision: 3, numero: 1 }
+    { date: '2024-07-25', price: 429.55, total: 429.55, comision: 3, numero: 1 }
 ];
 
 let historicalData = [];
