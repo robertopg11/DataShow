@@ -29,16 +29,33 @@
 
         <div class="error" id="error"></div>
         
-        <div class="chart-container">
-            <div id="chart">
-                <div class="loading" id="loading">Esperando datos...</div>
+        <div class="main-charts">
+            <div class="chart-section">
+                <h2 class="section-title">📊 Evolución del Precio</h2>
+                <div class="chart-container">
+                    <div id="chart">
+                        <div class="loading" id="loading">Esperando datos...</div>
+                    </div>
+                </div>
+                <div class="legend" id="legend">
+                    <div class="legend-item"><div class="legend-dot" style="background: #00d4ff;"></div> Precio Histórico</div>
+                    <div class="legend-item"><div class="legend-dot" style="background: #00ff88;"></div> Mis Compras</div>
+                    <div class="legend-item"><div class="legend-dot" style="background: #ff6b6b;"></div> Precio Medio</div>
+                </div>
             </div>
-        </div>
-        
-        <div class="legend" id="legend">
-            <div class="legend-item"><div class="legend-dot" style="background: #00d4ff;"></div> Precio Histórico</div>
-            <div class="legend-item"><div class="legend-dot" style="background: #00ff88;"></div> Mis Compras</div>
-            <div class="legend-item"><div class="legend-dot" style="background: #ff6b6b;"></div> Precio Medio</div>
+
+            <div class="chart-section" id="comparisonSection" style="display: none;">
+                <h2 class="section-title">💰 Capital Invertido vs Valor de Mercado</h2>
+                <div class="chart-container">
+                    <div id="comparisonChart">
+                        <div class="loading">Procesando inversión...</div>
+                    </div>
+                </div>
+                <div class="legend">
+                    <div class="legend-item"><div class="legend-dot" style="background: #818cf8;"></div> Capital Invertido</div>
+                    <div class="legend-item"><div class="legend-dot" style="background: #34d399;"></div> Valor de Mercado</div>
+                </div>
+            </div>
         </div>
 
         <div class="stats" id="stats">
