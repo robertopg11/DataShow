@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizador de Cartera</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1 id="pageTitle">📈 INVESCO EQQQ NASDAQ-100 UCITS ETF</h1>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label>CSV de Degiro:</label>
+                <input type="file" id="csvFile" accept=".csv">
+            </div>
+            <div class="control-group">
+                <label>ISIN:</label>
+                <input type="text" id="isinInput" value="IE0032077012">
+            </div>
+            <div class="control-group">
+                <label>Ticker Yahoo:</label>
+                <input type="text" id="tickerInput" value="EQQQ.MI">
+            </div>
+            <button class="refresh-btn" onclick="applyChanges()">Cargar Datos</button>
+        </div>
+
+        <div class="error" id="error"></div>
+        
+        <div class="main-charts">
+            <div class="chart-section">
+                <h2 class="section-title">📊 Evolución del Precio</h2>
+                <div class="chart-container">
+                    <div id="chart">
+                        <div class="loading" id="loading">Esperando datos...</div>
+                    </div>
+                </div>
+                <div class="legend" id="legend">
+                    <div class="legend-item"><div class="legend-dot" style="background: #00d4ff;"></div> Precio Histórico</div>
+                    <div class="legend-item"><div class="legend-dot" style="background: #00ff88;"></div> Mis Compras</div>
+                    <div class="legend-item"><div class="legend-dot" style="background: #ff6b6b;"></div> Precio Medio</div>
+                </div>
+            </div>
+
+            <div class="chart-section" id="comparisonSection" style="display: none;">
+                <h2 class="section-title">💰 Capital Invertido vs Valor de Mercado</h2>
+                <div class="chart-container">
+                    <div id="comparisonChart">
+                        <div class="loading">Procesando inversión...</div>
+                    </div>
+                </div>
+                <div class="legend">
+                    <div class="legend-item"><div class="legend-dot" style="background: #818cf8;"></div> Capital Invertido</div>
+                    <div class="legend-item"><div class="legend-dot" style="background: #34d399;"></div> Valor de Mercado</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats" id="stats">
+            <div class="stat-box">
+                <h3>Inversión Total</h3>
+                <div class="value" id="totalInvestment">-</div>
+            </div>
+            <div class="stat-box">
+                <h3>Valor Actual</h3>
+                <div class="value" id="currentValue">-</div>
+            </div>
+            <div class="stat-box">
+                <h3>Ganancia Bruta</h3>
+                <div class="value" id="gainLoss">-</div>
+            </div>
+            <div class="stat-box tooltip-container">
+                <h3>TIR Anualizada ℹ️</h3>
+                <div class="value" id="xirrValue">-</div>
+                <div class="tooltip-text">Tasa Interna de Retorno Bruta. Indica tu rentabilidad anual equivalente ponderando las diferentes fechas de tus compras (DCA).</div>
+            </div>
+            <div class="stat-box">
+                <h3>Comisiones (Total)</h3>
+                <div class="value negative" id="totalCommissions">-</div>
+            </div>
+            <div class="stat-box tooltip-container">
+                <h3>Costes Divisa ℹ️</h3>
+                <div class="value negative" id="autoFxCommissions">-</div>
+                <div class="tooltip-text">Comisiones AutoFX cobradas por Degiro al comprar activos en una divisa diferente a la tuya (Ej. Comprar en dólares).</div>
+            </div>
+            <div class="stat-box tooltip-container">
+                <h3>Impuestos Est. ℹ️</h3>
+                <div class="value negative" id="estimatedTaxes">-</div>
+                <div class="tooltip-text">Calculado sobre la ganancia bruta asumiendo una venta total hoy al precio actual. (Legislación de España: 19% al 28% s/ Tramos).</div>
+            </div>
+            <div class="stat-box">
+                <h3>Dividendos</h3>
+                <div class="value positive" id="dividendsEarned">-</div>
+            </div>
+            <div class="stat-box">
+                <h3>Ganancia Neta (Post-Imp)</h3>
+                <div class="value" id="netGain">-</div>
+            </div>
+            <div class="stat-box">
+                <h3>Acciones</h3>
+                <div class="value" id="shares">-</div>
+            </div>
+            <div class="stat-box">
+                <h3>Precio Medio</h3>
+                <div class="value" id="avgPrice">-</div>
+            </div>
+            <div class="stat-box">
+                <h3>Precio Actual</h3>
+                <div class="value" id="currentPrice">-</div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="qqq_data.js"></script>
+    <script src="parser.js"></script>
+    <script src="calculator.js"></script>
+    <script src="api.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
